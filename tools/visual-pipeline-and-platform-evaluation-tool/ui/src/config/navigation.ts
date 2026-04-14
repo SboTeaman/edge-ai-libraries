@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  Activity,
   Cpu,
   Film,
   Gauge,
@@ -22,6 +23,7 @@ import { DensityJobDetail } from "@/pages/DensityJobDetail.tsx";
 import { OptimizationJobDetail } from "@/pages/OptimizationJobDetail.tsx";
 import { Pipelines2 } from "@/pages/Pipelines2";
 import { Cameras } from "@/pages/Cameras";
+import { CustomMetrics } from "@/pages/CustomMetrics";
 
 export type NavigationItem = {
   url: string;
@@ -48,6 +50,7 @@ export const menuItems: Array<NavigationItem> = [
   },
   { url: "/tests/density", title: "Density", icon: Grid3x3 },
   { url: "/jobs", title: "Jobs", icon: ListTodo },
+  { url: "/custom-metrics", title: "Custom Metrics", icon: Activity },
 ];
 
 export const routeConfig: Array<RouteObject> = [
@@ -70,4 +73,5 @@ export const routeConfig: Array<RouteObject> = [
   { path: "jobs/density/:jobId", Component: DensityJobDetail },
   { path: "jobs/optimize", Component: Jobs },
   { path: "jobs/optimize/:jobId", Component: OptimizationJobDetail },
+  { path: "custom-metrics", Component: CustomMetrics },
 ];

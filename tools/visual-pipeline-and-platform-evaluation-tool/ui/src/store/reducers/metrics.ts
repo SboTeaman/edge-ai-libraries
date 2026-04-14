@@ -159,4 +159,23 @@ export const selectGpuMetrics = (state: RootState, gpuId: string = "0") => {
   };
 };
 
+const SYSTEM_METRIC_NAMES = new Set([
+  "cpu",
+  "mem",
+  "cpu_frequency_avg",
+  "cpu_freq",
+  "temp",
+  "gpu_engine_usage",
+  "gpu_frequency",
+  "gpu_power",
+]);
+
+export const selectCustomMetrics = (state: RootState): MetricData[] =>
+  state.metrics.metrics.filter((m) => !SYSTEM_METRIC_NAMES.has(m.name));
+
+export const selectCustomMetricNames = (state: RootState): string[] =>
+  Array.from(
+    new Set(selectCustomMetrics(state).map((m: MetricData) => m.name)),
+  ).sort();
+
 export default metrics.reducer;
