@@ -53,6 +53,7 @@ x-vippet: &vippet
 
 services:
   metric-service:
+    profiles: [metrics]
     image: docker.io/intel/metric-service:latest
     build:
       context: ../../../siv-telemetry/metric-service
@@ -61,7 +62,6 @@ services:
         http_proxy:
         https_proxy:
         no_proxy:
-    container_name: metric-service
     ports:
       - "9090:9090"
       - "9273:9273"
@@ -107,8 +107,6 @@ services:
     restart: on-failure:5
     depends_on:
       vippet:
-        condition: service_healthy
-      metric-service:
         condition: service_healthy
     environment:
       http_proxy: ${http_proxy}
