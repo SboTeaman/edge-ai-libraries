@@ -37,7 +37,7 @@ WORKDIR /home/dlstreamer
 
 # Copy the model manager script into the container and give execution permissions
 COPY --chown=dlstreamer:dlstreamer models/model_manager.sh /home/dlstreamer/
-RUN chmod +x ./model_manager.sh
+RUN sed -i 's/\r$//' ./model_manager.sh && chmod +x ./model_manager.sh
 
 # Set the entrypoint for the container to run the model manager script
 CMD ["./model_manager.sh"]

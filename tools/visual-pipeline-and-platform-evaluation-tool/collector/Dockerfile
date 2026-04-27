@@ -54,6 +54,11 @@ COPY qmassa_reader.py qmassa_reader.py
 COPY read_cpu_freq.sh read_cpu_freq.sh
 COPY entrypoint.sh /entrypoint.sh
 
+# Strip CRLF (handles files copied from Windows working directories)
+RUN sed -i 's/\r$//' read_cpu_freq.sh /entrypoint.sh \
+    /etc/supervisor/conf.d/supervisord.conf \
+    /etc/telegraf/telegraf.conf
+
 # Make scripts executable
 RUN chmod +x read_cpu_freq.sh /entrypoint.sh
 

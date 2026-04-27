@@ -52,7 +52,13 @@ export const metrics = createSlice({
       try {
         const parsed = JSON.parse(action.payload) as MetricsMessage;
         if (parsed.metrics && Array.isArray(parsed.metrics)) {
-          state.metrics = parsed.metrics;
+          const metricKey = (m: MetricData) =>
+            `${m.name}|${JSON.stringify(Object.entries(m.tags ?? {}).sort())}`;
+          const existingMap = new Map(state.metrics.map((m) => [metricKey(m), m]));
+          for (const metric of parsed.metrics) {
+            existingMap.set(metricKey(metric), metric);
+          }
+          state.metrics = Array.from(existingMap.values());
         }
       } catch (error) {
         console.error("Failed to parse metrics message:", error);
@@ -159,6 +165,10 @@ export const selectGpuMetrics = (state: RootState, gpuId: string = "0") => {
   };
 };
 
+export const selectNpuMetric = (state: RootState) =>
+  state.metrics.metrics.find((m) => m.name === "npu")?.fields
+    ?.utilization as number | undefined;
+
 const SYSTEM_METRIC_NAMES = new Set([
   "cpu",
   "mem",
@@ -168,6 +178,7 @@ const SYSTEM_METRIC_NAMES = new Set([
   "gpu_engine_usage",
   "gpu_frequency",
   "gpu_power",
+  "npu",
 ]);
 
 export const selectCustomMetrics = (state: RootState): MetricData[] =>

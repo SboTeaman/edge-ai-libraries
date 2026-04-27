@@ -64,6 +64,9 @@ COPY --chown=dlstreamer:dlstreamer vippet/pipelines/ /home/dlstreamer/vippet/pip
 COPY --chown=dlstreamer:dlstreamer vippet/api/ /home/dlstreamer/vippet/api
 COPY --chown=dlstreamer:dlstreamer vippet/managers/ /home/dlstreamer/vippet/managers
 
+# Strip CRLF (handles files copied from Windows working directories)
+RUN sed -i 's/\r$//' ./entrypoint.sh
+
 # Make scripts executable
 RUN chmod +x ./entrypoint.sh
 
@@ -78,3 +81,6 @@ COPY --chown=dlstreamer:dlstreamer vippet/requirements-dev.txt /home/dlstreamer/
 
 # Install only dev requirements on top of prod image
 RUN pip3 install --disable-pip-version-check --no-cache-dir -r requirements-dev.txt
+
+# Copy tests
+COPY --chown=dlstreamer:dlstreamer vippet/tests/ /home/dlstreamer/vippet/tests/
