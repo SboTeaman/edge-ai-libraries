@@ -628,9 +628,6 @@ class PipelineRunner:
         except Exception as e:
             self.logger.error(f"Pipeline execution error: {e}")
             raise
-        finally:
-            # Push 0.0 to metric-service after pipeline completion (success or failure)
-            self._push_fps_metric(0.0)
 
     def _push_fps_metric(self, fps: float) -> None:
         """
