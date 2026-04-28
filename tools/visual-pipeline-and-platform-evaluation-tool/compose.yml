@@ -21,6 +21,9 @@ x-vippet: &vippet
   depends_on:
     mediamtx:
       condition: service_started
+    metric-service:
+      condition: service_healthy
+      required: false
   environment:
     GST_DEBUG: "1"
     APP_LOG_LEVEL: INFO
