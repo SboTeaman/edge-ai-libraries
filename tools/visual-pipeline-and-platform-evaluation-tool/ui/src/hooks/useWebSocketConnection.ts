@@ -8,13 +8,7 @@ import {
   messageReceived,
 } from "@/store/reducers/metrics.ts";
 
-const getWebSocketUrl = () => {
-  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const host = window.location.host;
-  return `${protocol}//${host}/metrics/ws/clients`;
-};
-
-const WEB_SOCKET_NORMAL_CLOSURE = 1000;
+const getSSEUrl = () => `/metrics/stream`;
 
 const RECONNECT_CONFIG = {
   initialDelayMs: 1000,
@@ -24,7 +18,7 @@ const RECONNECT_CONFIG = {
 
 export const useWebSocketConnection = () => {
   const dispatch = useAppDispatch();
-  const webSocketRef = useRef<WebSocket | null>(null);
+  const esRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -49,84 +43,64 @@ export const useWebSocketConnection = () => {
     );
 
   const scheduleReconnect = () => {
-    if (isIntentionalCloseRef.current) {
-      return;
-    }
-
+    if (isIntentionalCloseRef.current) return;
     clearReconnectTimeout();
-
     const delay = getReconnectDelay();
     console.debug(
-      `Scheduling reconnection attempt ${reconnectAttemptRef.current + 1} in ${delay}ms`,
+      `Scheduling SSE reconnection attempt ${reconnectAttemptRef.current + 1} in ${delay}ms`,
     );
-
     reconnectTimeoutRef.current = setTimeout(() => {
       reconnectAttemptRef.current += 1;
-      connectWebSocket();
+      connectSSE();
     }, delay);
   };
 
-  const connectWebSocket = () => {
-    if (
-      webSocketRef.current?.readyState === WebSocket.CONNECTING ||
-      webSocketRef.current?.readyState === WebSocket.OPEN
-    ) {
-      return;
-    }
-
-    if (webSocketRef.current) {
-      webSocketRef.current.close();
+  const connectSSE = () => {
+    if (esRef.current) {
+      esRef.current.close();
+      esRef.current = null;
     }
 
     dispatch(wsConnecting());
 
     try {
-      const ws = new WebSocket(getWebSocketUrl());
-      webSocketRef.current = ws;
+      const es = new EventSource(getSSEUrl());
+      esRef.current = es;
 
-      ws.onopen = () => {
-        console.debug("WebSocket connected");
+      es.onopen = () => {
+        console.debug("SSE connected");
         reconnectAttemptRef.current = 0;
         dispatch(wsConnected());
       };
 
-      ws.onmessage = (event) => {
+      es.onmessage = (event) => {
         dispatch(messageReceived(event.data));
       };
 
-      ws.onerror = (error) => {
-        console.error("WebSocket error:", error);
-        dispatch(wsError("WebSocket connection error"));
-      };
-
-      ws.onclose = (event) => {
-        console.debug("WebSocket disconnected", event.code, event.reason);
+      es.onerror = (error) => {
+        console.error("SSE error:", error);
+        dispatch(wsError("SSE connection error"));
         dispatch(wsDisconnected());
-        webSocketRef.current = null;
-
-        if (
-          !isIntentionalCloseRef.current &&
-          event.code !== WEB_SOCKET_NORMAL_CLOSURE
-        ) {
-          scheduleReconnect();
-        }
+        es.close();
+        esRef.current = null;
+        scheduleReconnect();
       };
     } catch (error) {
-      dispatch(wsError(`Failed to create WebSocket: ${error}`));
+      dispatch(wsError(`Failed to create SSE connection: ${error}`));
       scheduleReconnect();
     }
   };
 
   useEffect(() => {
     isIntentionalCloseRef.current = false;
-    connectWebSocket();
+    connectSSE();
 
     return () => {
       isIntentionalCloseRef.current = true;
       clearReconnectTimeout();
-      if (webSocketRef.current) {
-        webSocketRef.current.close();
-        webSocketRef.current = null;
+      if (esRef.current) {
+        esRef.current.close();
+        esRef.current = null;
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -136,16 +110,16 @@ export const useWebSocketConnection = () => {
     disconnect: () => {
       isIntentionalCloseRef.current = true;
       clearReconnectTimeout();
-      if (webSocketRef.current) {
-        webSocketRef.current.close();
-        webSocketRef.current = null;
+      if (esRef.current) {
+        esRef.current.close();
+        esRef.current = null;
       }
     },
     reconnect: () => {
       isIntentionalCloseRef.current = false;
       reconnectAttemptRef.current = 0;
       clearReconnectTimeout();
-      connectWebSocket();
+      connectSSE();
     },
   };
 };

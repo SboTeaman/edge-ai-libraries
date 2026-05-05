@@ -1,0 +1,2 @@
+FROM docker.io/intel/metrics-service:2026.1.0-20260417-weekly
+RUN pip install prometheus-client --target /opt/venv/lib/python3.12/site-packages --quiet

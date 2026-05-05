@@ -64,8 +64,8 @@ COPY --chown=dlstreamer:dlstreamer vippet/pipelines/ /home/dlstreamer/vippet/pip
 COPY --chown=dlstreamer:dlstreamer vippet/api/ /home/dlstreamer/vippet/api
 COPY --chown=dlstreamer:dlstreamer vippet/managers/ /home/dlstreamer/vippet/managers
 
-# Make scripts executable
-RUN chmod +x ./entrypoint.sh
+# Fix CRLF line endings (Windows checkout) and make scripts executable
+RUN sed -i 's/\r$//' ./entrypoint.sh && chmod +x ./entrypoint.sh
 
 # Set the entrypoint for the container to run the main Python script
 CMD ["./entrypoint.sh"]

@@ -1,0 +1,11 @@
+services:
+  metrics-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev-metrics
+    image: metrics-service:dev
+    volumes:
+      - /sys:/sys:ro
+      - /run:/run:ro
+      - ./my-telegraf.conf:/etc/telegraf/telegraf.conf:ro
+      - C:/open-edge-platform-metric-service-to-vippet/frameworks.ai.siv-open-edge-platform/siv-telemetry/metric-service/app:/app/app:ro

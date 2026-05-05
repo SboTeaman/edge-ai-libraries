@@ -1,0 +1,8 @@
+# Local development override: build metrics-service from source
+# Usage: docker compose -f compose.yml -f compose.cpu.yml -f compose.local.yml up --build
+services:
+  metrics-service:
+    image: metric-service:local
+    build:
+      context: ../../../siv-telemetry/metric-service
+      dockerfile: Dockerfile
