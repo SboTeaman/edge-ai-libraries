@@ -94,6 +94,7 @@ services:
       - ./shared/images/:/images
       - ./shared/videos/:/videos
       - ./vippet/api/static:/usr/share/nginx/html/static
+      - ./ui/nginx.conf:/etc/nginx/conf.d/default.conf:ro
   models:
     profiles: [do-not-start]
     image: docker.io/intel/vippet-models:${DOCKER_TAG}
@@ -154,7 +155,9 @@ services:
     ports:
       - "7860:7860"
   metrics-service:
-    image: docker.io/intel/metrics-service:2026.1.0-20260417-weekly
+    image: metric-service:latest
+    build:
+      context: ../../../siv-telemetry/metric-service
     container_name: metrics-service
     ports:
       - "9090:9090"
