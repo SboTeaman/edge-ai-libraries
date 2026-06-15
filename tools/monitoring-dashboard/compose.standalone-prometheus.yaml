@@ -1,0 +1,141 @@
+# Copyright (C) 2025-2026 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+# =============================================================================
+# Intel XPU Monitoring Dashboard — Variant B: standalone Prometheus (no MM)
+# =============================================================================
+#
+# For deployments that do NOT run metrics-manager (Customer B: health
+# monitoring at scale without the SSE / custom-ingest overhead).
+#
+#   node-exporter (:9100, CPU/RAM/disk)  ┐
+#   npu-metrics-exporter (:8000, NPU)    ├─► Prometheus ─► Grafana (:3000)
+#   qmmd (GPU, optional, see note)       ┘
+#
+# ⚠️ HONEST LIMITATIONS vs variant A (with metrics-manager):
+#   - GPU: Intel has no clean standalone GPU exporter (intel-gpu-exporter is
+#     archived). GPU requires running qmmd (qmassa daemon) or xpu-manager
+#     yourself — left commented out below.
+#   - System metrics come from node-exporter (node_* names), which differ from
+#     metrics-manager's Telegraf names. The system/GPU dashboards in this repo
+#     target metrics-manager names and do NOT apply here; for system metrics use
+#     the community "Node Exporter Full" dashboard (grafana.com ID 1860).
+#   - The NPU dashboard (4-npu.json) DOES work here: this Prometheus relabels the
+#     exporter's npu_monitor_* names to the canonical npu_* (see
+#     prometheus/prometheus.standalone.yml).
+#
+# Usage:
+#   cp .env.example .env            # default: admin/admin
+#   docker compose -f compose.standalone-prometheus.yaml up -d --build
+#   open http://localhost:3000      # Grafana: admin / admin
+#
+# =============================================================================
+
+name: xpu-monitoring-standalone
+
+services:
+  # ---------------------------------------------------------------------------
+  # node-exporter — host CPU / RAM / disk / network
+  # ---------------------------------------------------------------------------
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: xpu-node-exporter
+    restart: unless-stopped
+    command:
+      - "--path.rootfs=/host"
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+    networks:
+      - xpu-net
+
+  # ---------------------------------------------------------------------------
+  # npu-metrics-exporter — Intel NPU telemetry (built from tools/npu-monitor-tool)
+  # ---------------------------------------------------------------------------
+  npu-metrics-exporter:
+    build:
+      context: ../npu-monitor-tool
+      dockerfile: Dockerfile
+      args:
+        http_proxy: ${http_proxy:-}
+        https_proxy: ${https_proxy:-}
+        no_proxy: ${no_proxy:-}
+    image: npu-metrics-exporter:latest
+    container_name: xpu-npu-exporter
+    restart: unless-stopped
+    # NPU telemetry needs hardware + PMT sysfs access.
+    privileged: true
+    security_opt:
+      - apparmor:unconfined
+    volumes:
+      - /sys:/sys:ro
+    networks:
+      - xpu-net
+
+  # ---------------------------------------------------------------------------
+  # GPU (optional) — Intel has no clean standalone GPU exporter. To monitor GPU
+  # here, run qmassa's qmmd daemon exposing a Prometheus endpoint and add it as a
+  # scrape target in prometheus.standalone.yml. Left commented intentionally.
+  # ---------------------------------------------------------------------------
+  # qmmd:
+  #   image: <your qmmd image>
+  #   devices: ["/dev/dri:/dev/dri"]
+  #   networks: [xpu-net]
+
+  # ---------------------------------------------------------------------------
+  # Prometheus
+  # ---------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    container_name: xpu-prometheus-standalone
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=${PROM_RETENTION_TIME:-7d}"
+      - "--storage.tsdb.retention.size=${PROM_RETENTION_SIZE:-2GB}"
+      - "--web.enable-lifecycle"
+    volumes:
+      - ./prometheus/prometheus.standalone.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - xpu-net
+
+  # ---------------------------------------------------------------------------
+  # Grafana — same provisioning as variant A (datasource uid "prometheus")
+  # ---------------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:11.6.1
+    container_name: xpu-grafana-standalone
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:?set GF_SECURITY_ADMIN_PASSWORD in .env}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=${GF_AUTH_ANONYMOUS_ENABLED:-false}
+    ports:
+      - "${HOST_GRAFANA_PORT:-3000}:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    networks:
+      - xpu-net
+
+volumes:
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+
+networks:
+  xpu-net:
+    driver: bridge

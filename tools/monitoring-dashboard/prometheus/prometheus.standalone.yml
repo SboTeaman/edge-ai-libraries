@@ -1,0 +1,65 @@
+# Copyright (C) 2025-2026 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+# =============================================================================
+# Prometheus scrape config — Variant B (standalone, no metrics-manager)
+# =============================================================================
+# Retention is set via CLI flags in compose, not here.
+#
+# The npu-metrics-exporter emits npu_monitor_* metric names; this config
+# RELABELS them to the canonical npu_* names so the shared 4-npu.json dashboard
+# works unchanged — without editing the upstream exporter. (If/when the exporter
+# is unified upstream to npu_*, the metric_relabel_configs block becomes a no-op
+# and can be dropped.)
+# =============================================================================
+
+global:
+  scrape_interval: 1s
+  scrape_timeout: 1s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: intel-xpu-standalone
+
+scrape_configs:
+  # System metrics (CPU/RAM/disk). Names are node_* — use the community
+  # "Node Exporter Full" dashboard (grafana.com ID 1860) for these; the
+  # metrics-manager-oriented system dashboard does not apply to variant B.
+  - job_name: node
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  # NPU telemetry — relabel npu_monitor_* -> canonical npu_*.
+  - job_name: npu
+    static_configs:
+      - targets: ["npu-metrics-exporter:8000"]
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: npu_monitor_temperature
+        target_label: __name__
+        replacement: npu_temperature
+      - source_labels: [__name__]
+        regex: npu_monitor_power
+        target_label: __name__
+        replacement: npu_power
+      - source_labels: [__name__]
+        regex: npu_monitor_freq_hz
+        target_label: __name__
+        replacement: npu_frequency
+      - source_labels: [__name__]
+        regex: npu_util
+        target_label: __name__
+        replacement: npu_utilization
+      - source_labels: [__name__]
+        regex: npu_memory_util
+        target_label: __name__
+        replacement: npu_memory_mb
+      - source_labels: [__name__]
+        regex: npu_memory_bandwidth
+        target_label: __name__
+        replacement: npu_bandwidth
+      # npu_tile_config is already canonical — no rule needed.
+
+  # GPU (optional): if running qmmd, add its target here.
+  # - job_name: gpu
+  #   static_configs:
+  #     - targets: ["qmmd:<port>"]

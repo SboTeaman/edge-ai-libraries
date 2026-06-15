@@ -1,0 +1,61 @@
+{
+  "annotations": { "list": [ { "builtIn": 1, "datasource": { "type": "grafana", "uid": "-- Grafana --" }, "enable": true, "hide": true, "name": "Annotations & Alerts", "type": "dashboard" } ] },
+  "editable": true,
+  "graphTooltip": 1,
+  "title": "Intel XPU — NPU",
+  "uid": "intel-xpu-npu",
+  "tags": ["intel", "xpu", "npu"],
+  "timezone": "browser",
+  "time": { "from": "now-15m", "to": "now" },
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "description": "Intel NPU telemetry. Canonical npu_* metric names — works with metrics-manager directly and with the standalone npu-metrics-exporter via Prometheus relabeling. memory_mb = -1 on platforms without the sysfs node (MTL/ARL).",
+  "templating": { "list": [
+    { "name": "host", "type": "query", "datasource": { "type": "prometheus", "uid": "prometheus" }, "query": "label_values(npu_power, host)", "refresh": 2, "includeAll": true, "multi": true, "current": { "text": "All", "value": "$__all" } }
+  ] },
+  "panels": [
+    {
+      "title": "NPU utilization", "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "custom": { "fillOpacity": 15 } }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "npu_utilization{host=~\"$host\"}", "legendFormat": "{{host}}{{dev_id}}" } ]
+    },
+    {
+      "title": "NPU power", "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "watt", "min": 0 }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "npu_power{host=~\"$host\"}", "legendFormat": "{{host}}{{dev_id}}" } ]
+    },
+    {
+      "title": "NPU temperature", "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "celsius", "min": 0, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 90 } ] } } },
+      "targets": [ { "refId": "A", "expr": "npu_temperature{host=~\"$host\"}", "legendFormat": "{{host}}{{dev_id}}" } ]
+    },
+    {
+      "title": "NPU frequency", "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "hertz", "min": 0 }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "npu_frequency{host=~\"$host\"}", "legendFormat": "{{host}}{{dev_id}}" } ]
+    },
+    {
+      "title": "NPU memory bandwidth", "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "MBs", "min": 0 }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "npu_bandwidth{host=~\"$host\"}", "legendFormat": "{{host}}{{dev_id}}" } ]
+    },
+    {
+      "title": "NPU memory used", "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "decmbytes", "min": 0 }, "overrides": [] },
+      "description": "memory_mb is -1 on platforms without the sysfs node (pre-PTL, e.g. MTL/ARL).",
+      "targets": [ { "refId": "A", "expr": "npu_memory_mb{host=~\"$host\"} >= 0", "legendFormat": "{{host}}{{dev_id}}" } ]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+# Copyright (C) 2025-2026 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+# Auto-load every dashboard JSON dropped into /var/lib/grafana/dashboards.
+apiVersion: 1
+
+providers:
+  - name: intel-xpu
+    orgId: 1
+    folder: "Intel XPU"
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

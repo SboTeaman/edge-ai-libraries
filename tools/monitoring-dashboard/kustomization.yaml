@@ -1,0 +1,39 @@
+# Copyright (C) 2025-2026 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+# =============================================================================
+# Kubernetes parity (kube-prometheus-stack)
+# =============================================================================
+# In K8s, metrics-manager already ships a ServiceMonitor (helm/.../servicemonitor.yaml)
+# so Prometheus auto-discovers it — the NVIDIA dcgm-style path.
+#
+# This kustomization packages the SAME dashboard JSONs (single source of truth —
+# no duplication) into a ConfigMap labeled for the Grafana sidecar to auto-load.
+#
+# It lives at the tool root (not a subdir) so the referenced dashboard files sit
+# BELOW the kustomization directory — this works with kustomize's default
+# load restrictor (no --load-restrictor flag needed).
+#
+# Usage:
+#   kubectl apply -k tools/monitoring-dashboard/ -n monitoring
+#
+# Requires the kube-prometheus-stack Grafana sidecar with dashboard discovery
+# enabled (sidecar.dashboards.enabled=true), watching the label below.
+# =============================================================================
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+configMapGenerator:
+  - name: intel-xpu-dashboards
+    files:
+      - grafana/dashboards/0-overview.json
+      - grafana/dashboards/1-system.json
+      - grafana/dashboards/2-gpu-power.json
+      - grafana/dashboards/3-gpu-performance.json
+      - grafana/dashboards/4-npu.json
+
+generatorOptions:
+  labels:
+    grafana_dashboard: "1"
+  disableNameSuffixHash: true

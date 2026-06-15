@@ -1,0 +1,41 @@
+{
+  "annotations": { "list": [ { "builtIn": 1, "datasource": { "type": "grafana", "uid": "-- Grafana --" }, "enable": true, "hide": true, "name": "Annotations & Alerts", "type": "dashboard" } ] },
+  "editable": true,
+  "graphTooltip": 1,
+  "title": "Intel XPU — GPU Performance",
+  "uid": "intel-xpu-gpu-perf",
+  "tags": ["intel", "xpu", "gpu", "performance"],
+  "timezone": "browser",
+  "time": { "from": "now-15m", "to": "now" },
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "description": "GPU engine utilization (render / compute / copy / video) and clock frequency per GPU.",
+  "templating": { "list": [
+    { "name": "host", "type": "query", "datasource": { "type": "prometheus", "uid": "prometheus" }, "query": "label_values(gpu_frequency, host)", "refresh": 2, "includeAll": true, "multi": true, "current": { "text": "All", "value": "$__all" } },
+    { "name": "gpu", "type": "query", "datasource": { "type": "prometheus", "uid": "prometheus" }, "query": "label_values(gpu_frequency{host=~\"$host\"}, gpu_id)", "refresh": 2, "includeAll": true, "multi": true, "current": { "text": "All", "value": "$__all" } }
+  ] },
+  "panels": [
+    {
+      "title": "Engine utilization", "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "custom": { "fillOpacity": 10 } }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "gpu_engine_usage_usage{host=~\"$host\", gpu_id=~\"$gpu\"}", "legendFormat": "gpu{{gpu_id}} {{engine}}" } ]
+    },
+    {
+      "title": "GPU clock frequency", "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "hertz", "min": 0 }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "gpu_frequency{host=~\"$host\", gpu_id=~\"$gpu\"}", "legendFormat": "gpu{{gpu_id}} {{type}}" } ]
+    },
+    {
+      "title": "Busiest engine (now)", "type": "bargauge",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 9 },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 }, "overrides": [] },
+      "options": { "orientation": "horizontal", "displayMode": "gradient", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [ { "refId": "A", "expr": "gpu_engine_usage_usage{host=~\"$host\", gpu_id=~\"$gpu\"}", "legendFormat": "gpu{{gpu_id}} {{engine}}" } ]
+    }
+  ]
+}

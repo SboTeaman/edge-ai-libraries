@@ -1,0 +1,42 @@
+{
+  "annotations": { "list": [ { "builtIn": 1, "datasource": { "type": "grafana", "uid": "-- Grafana --" }, "enable": true, "hide": true, "name": "Annotations & Alerts", "type": "dashboard" } ] },
+  "editable": true,
+  "graphTooltip": 1,
+  "title": "Intel XPU — GPU Power",
+  "uid": "intel-xpu-gpu-power",
+  "tags": ["intel", "xpu", "gpu", "power"],
+  "timezone": "browser",
+  "time": { "from": "now-15m", "to": "now" },
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "description": "GPU power draw by domain (package / cores / uncore as reported by qmassa) per GPU. Designed for the 'is my workload hitting the platform power limit?' question.",
+  "templating": { "list": [
+    { "name": "host", "type": "query", "datasource": { "type": "prometheus", "uid": "prometheus" }, "query": "label_values(gpu_power, host)", "refresh": 2, "includeAll": true, "multi": true, "current": { "text": "All", "value": "$__all" } },
+    { "name": "gpu", "type": "query", "datasource": { "type": "prometheus", "uid": "prometheus" }, "query": "label_values(gpu_power{host=~\"$host\"}, gpu_id)", "refresh": 2, "includeAll": true, "multi": true, "current": { "text": "All", "value": "$__all" } }
+  ] },
+  "panels": [
+    {
+      "title": "GPU power by domain", "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 10, "w": 18, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "watt", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 } }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "gpu_power{host=~\"$host\", gpu_id=~\"$gpu\"}", "legendFormat": "gpu{{gpu_id}} {{type}}" } ]
+    },
+    {
+      "title": "Total GPU power (now)", "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 10, "w": 6, "x": 18, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "watt", "min": 0, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 30 }, { "color": "red", "value": 60 } ] } } },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" },
+      "targets": [ { "refId": "A", "expr": "sum(gpu_power{host=~\"$host\", gpu_id=~\"$gpu\"})", "legendFormat": "total" } ]
+    },
+    {
+      "title": "Peak power by domain (selected range)", "type": "bargauge",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 10 },
+      "fieldConfig": { "defaults": { "unit": "watt", "min": 0 }, "overrides": [] },
+      "options": { "orientation": "horizontal", "displayMode": "gradient", "reduceOptions": { "calcs": ["max"] } },
+      "targets": [ { "refId": "A", "expr": "max_over_time(gpu_power{host=~\"$host\", gpu_id=~\"$gpu\"}[$__range])", "legendFormat": "gpu{{gpu_id}} {{type}}" } ]
+    }
+  ]
+}

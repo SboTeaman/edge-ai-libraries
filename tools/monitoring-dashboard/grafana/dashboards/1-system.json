@@ -1,0 +1,49 @@
+{
+  "annotations": { "list": [ { "builtIn": 1, "datasource": { "type": "grafana", "uid": "-- Grafana --" }, "enable": true, "hide": true, "name": "Annotations & Alerts", "type": "dashboard" } ] },
+  "editable": true,
+  "graphTooltip": 1,
+  "title": "Intel XPU — System (CPU / RAM / Thermal)",
+  "uid": "intel-xpu-system",
+  "tags": ["intel", "xpu", "system"],
+  "timezone": "browser",
+  "time": { "from": "now-15m", "to": "now" },
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "templating": { "list": [
+    { "name": "host", "type": "query", "datasource": { "type": "prometheus", "uid": "prometheus" }, "query": "label_values(cpu_usage_user, host)", "refresh": 2, "includeAll": true, "multi": true, "current": { "text": "All", "value": "$__all" } }
+  ] },
+  "panels": [
+    {
+      "title": "CPU usage", "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "cpu_usage_user{host=~\"$host\"}", "legendFormat": "user" },
+        { "refId": "B", "expr": "cpu_usage_system{host=~\"$host\"}", "legendFormat": "system" },
+        { "refId": "C", "expr": "100 - cpu_usage_idle{host=~\"$host\"}", "legendFormat": "busy (100-idle)" }
+      ]
+    },
+    {
+      "title": "Memory used %", "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "mem_used_percent{host=~\"$host\"}", "legendFormat": "used %" } ]
+    },
+    {
+      "title": "CPU package temperature", "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "celsius", "min": 0 }, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 90 } ] } },
+      "targets": [ { "refId": "A", "expr": "temp_temp{host=~\"$host\"}", "legendFormat": "{{sensor}}" } ]
+    },
+    {
+      "title": "CPU average frequency", "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "hertz", "min": 0 }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "cpu_frequency_avg_frequency{host=~\"$host\"} * 1000", "legendFormat": "avg freq" } ]
+    }
+  ]
+}
